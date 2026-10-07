@@ -1,0 +1,48 @@
+import{describe,expect,it}from'vitest';
+import{mount}from'@vue/test-utils';
+import App from'../App.vue';
+describe('App 权重调整集成流程',()=>{
+  it('adjust with locks, confirm, analyze, save and reload keeps one shared state',async()=>{
+    localStorage.clear();
+    const wrapper=mount(App);
+    const panel=()=>wrapper.find('.values');
+    await panel().find('.edit-toggle').trigger('click');
+    await panel().findAll('.lock')[1].trigger('click');
+    const slider=panel().find('input[type=range]');
+    const el=slider.element as HTMLInputElement;
+    await slider.trigger('pointerdown');
+    el.value='50';await slider.trigger('input');
+    await slider.trigger('change');
+    await panel().find('.adjust-actions .primary').trigger('click');
+    expect(panel().text()).toContain('50%');
+    expect(panel().find('.lock-marker').exists()).toBe(true);
+    await wrapper.find('.analyze-button').trigger('click');
+    expect(wrapper.find('.results').exists()).toBe(true);
+    const saveButton=wrapper.findAll('.actions button').find(b=>b.text()==='保存案例')!;
+    await saveButton.trigger('click');
+    const stored=JSON.parse(localStorage.getItem('c2c-006.cases.v1')!);
+    expect(stored[0].draft.weightLocks).toEqual(['growth']);
+    expect(stored[0].draft.weights.stability).toBe(50);
+    expect(stored[0].analysis.weights.stability).toBe(50);
+    await wrapper.find('.case-library article button').trigger('click');
+    await wrapper.findAll('header nav button')[0].trigger('click');
+    expect(panel().find('.lock-marker').exists()).toBe(true);
+    expect(panel().text()).toContain('50%');
+  });
+  it('loads and analyzes a legacy stored case without lock fields',async()=>{
+    localStorage.clear();
+    const option=(id:string,name:string)=>({id,name,description:'',impacts:{stability:1,growth:1,freedom:1,money:1},reversibility:50});
+    const legacy={draft:{id:'legacy',title:'旧案例',background:'',weights:{stability:80,growth:80,freedom:40,money:0},updatedAt:'2026-01-01T00:00:00Z',options:[option('a','方案甲'),option('b','方案乙')]}};
+    localStorage.setItem('c2c-006.cases.v1',JSON.stringify([legacy]));
+    const fresh=mount(App);
+    await fresh.find('.case-library article button').trigger('click');
+    expect(fresh.text()).toContain('旧案例');
+    const panel=()=>fresh.find('.values');
+    expect(panel().find('.lock-marker').exists()).toBe(false);
+    await panel().find('.edit-toggle').trigger('click');
+    expect(panel().findAll('input[type=range]')).toHaveLength(4);
+    await panel().find('.adjust-actions .primary').trigger('click');
+    await fresh.find('.analyze-button').trigger('click');
+    expect(fresh.find('.results').exists()).toBe(true);
+  });
+});

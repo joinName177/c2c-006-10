@@ -4,7 +4,7 @@ Vue 3 + TypeScript + Vite 纯前端决策反思工具。支持录入 2–4 个�
 
 ## 架构
 
-- `src/core`：领域模型、输入校验、权重归一化、后悔评分、预演与安全提示
+- `src/core`：领域模型、输入校验、权重归一化与锁定联动调整、后悔评分、预演与安全提示
 - `src/ports`：案例仓储和打印端口
 - `src/adapters`：localStorage 与浏览器打印实现
 - `src/ui`：Vue 控制器、分步组件和原生 CSS
